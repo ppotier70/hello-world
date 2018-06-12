@@ -1,0 +1,617 @@
+
+
+
+<html 
+<head><title>
+	ISP_ImportantThingsV2
+ </title>
+    <link href="Styles.css" rel="stylesheet" type="text/css" /> 
+    <script type="text/javascript" language="javascript" src="jquery-1.12.3.min.js"></script>
+    <script type="text/javascript" language="javascript" src="ISP_No_MP.js"></script>
+
+    <script type="text/javascript" language="javascript">
+        function fncsave(btnNum) {
+         
+            $('#hfNavBtnID')[0].value = $('#hfScrollNumberL1')[0].value + ":" + $('#hfScrollNumberL2')[0].value + ":" + btnNum + ":Navbtn" + btnNum;
+          // alert($('#hfNavBtnID')[0].value)
+            if ($('#hfScrollNumberL1')[0].value + $('#hfScrollNumberL2')[0].value + btnNum == $('#thidButtonId')[0].value) {
+                $('#WhoGotClicked')[0].value = "bme"; // just clicked myself
+               //alert("This is me");
+            } else {
+            businessRule_S1_1(false);
+            $('#WhoGotClicked')[0].value = btnNum;
+			 $('#hfNavBtnSelected')[0].value = $('#hfScrollNumberL1')[0].value +  $('#hfScrollNumberL2')[0].value +  btnNum + "A";
+          // alert("going to postback");
+                // alert(btnNum + " L1:" + $('#hfScrollNumberL1')[0].value + " L2:" + $('#hfScrollNumberL2')[0].value);
+				 buildNavCntrl();
+				 buildJSONFile()
+                __doPostBack('btnAspClick', '')
+            }
+        }
+       
+	    function buildNavCntrl(){
+		 // rebuild nav control now the user has made a selection 
+		 var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		  myObj.FA = 'S';
+		  myObj.thisFm = '111A';
+		  myObj.nextFm = $('#hfNavBtnSelected')[0].value;
+		  myObj.nextPg ='1';
+		  $('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+		 
+		 
+		  // $('#hfnavCntrl')[0].value = 'S:' +'111A:' +    $('#hfNavBtnSelected')[0].value
+	   }
+	   
+	    function buildJSONFile(){
+		
+		// ------- Build AppCntrl string to return and save by nodejs server---------
+		var appCntrlStr = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIdName":"' + $('#lblName').text();
+		appCntrlStr +='","adultChild":"' + $('#hfAdultChild')[0].value +'","statTracker":"' + $('#hfstatTracker')[0].value +  '"}';
+		$('#hfappCntrl')[0].value = appCntrlStr
+		//alert(appCntrlStr.constructor == String)
+		 // ------- Build returning data string to  save by nodejs server---------
+		  var jString = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIDname":"' + $('#lblName').text();
+		  $('input[type=text], textarea').each(function() {
+             jString += '","' + $(this).context.id + '":"' + ($(this).context.value).replace(/"/gi, "*");
+		  });
+		   jString += '"}';
+		  	$('#hfstorageStr')[0].value = jString
+			
+		  
+		   //alert('*****jString= ' +  $('#hfstorageStr')[0].value)
+		 }
+		 
+	   function confSubmit(form) {
+           if (confirm("\nAre you sure you want to cancel what you have entered on this form?")) {
+          // ----establish value of NavCntrl, used if user hits Cancel. This is like a reload 
+		  $('#hfnavCntrl')[0].value = 'N:111A:111A' 
+		   form.submit();
+            }else {
+                event.preventDefault();
+				return false;
+            }
+         }
+		 
+        function businessRule_S1_1(showMsg) {   //--- for ISP_ImportantThings.aspx ---------------
+            //   if ($('#hfRequestedCancel')[0].value) { return; } //--no reason to check if user canceled
+
+            $(document).ready(function() {
+
+          //  if ($('#hfParticipantView')[0].value) { return; } // if this is a viewonly request, no need for editing
+            
+                var InsVal = "y";
+                var detailErrMsg = "";
+
+                // --- first insure all textboxes are used, except for item g. It will be handled later .....
+                $('input[type=text], textarea').each(function() {
+                    var lblName = $(this).context.id.replace('tbl', 'lbl')
+                    $('#' + lblName).css('color', 'black');
+
+                    if ($(this).context.value.length == 0) {
+
+                        if ($(this).context.name.substring(0, 5) != "tbl1g") {
+                            // alert("missing item: " + $(this).context.name.substring(4, 5));
+                            detailErrMsg += "\n missing item: " + $(this).context.name.substring(4, 5);
+                            $('#' + lblName).css('color', 'red');
+                        }
+                    }
+                });
+                //--- now validate item g ------------------------
+                $('#lbl1g').css('color', 'black');
+                for (var iIndex = 1; iIndex < 7; iIndex++) {
+                    if ($('#tbl1gn' + iIndex).val().length > 0 && $('#tbl1gr' + iIndex).val().length == 0) {
+                        // alert("have a name, missing relationship data in item g, line #" + iIndex);
+                        detailErrMsg += "\n have a name, missing relationship data in item g, line #" + iIndex;
+                        $('#lbl1g').css('color', 'red');
+
+                    }
+                    if ($('#tbl1gn' + iIndex).val().length == 0 && $('#tbl1gr' + iIndex).val().length > 0) {
+                        // alert("have a relationship, missing name data in item g, line #" + iIndex);
+                        detailErrMsg += "\n have a relationship, missing name data in item g, line #" + iIndex;
+                        $('#lbl1g').css('color', 'red');
+                    }
+                }
+
+
+                // build error message if needed --------------------------
+                $('#hfHasErrrors')[0].value = false;
+                $('#StatBlk2').css('background-color', '#99ff99');
+                if (detailErrMsg.length != 0) {
+                    if (showMsg) {
+                        detailErrMsg = "Please correct the following: \n" + detailErrMsg
+                        alert(detailErrMsg);
+                    }
+                    //      $('#ctl00_ContentPlaceHolder1_hfBusinessRuleChk')[0].value = true
+                    //event.preventDefault();  // this keeps the Next or Previous buttons from firing if there are business rule errors
+                    $('#hfHasErrrors')[0].value = true;
+                    $('#StatBlk2').css('background-color', '#ff6666');
+                    InsVal = "n";
+                }
+              
+                // now update statTracker for entire form
+                      
+                statTrackerUpdateV2("I1_110", InsVal, '0', '0');
+              });
+        }
+    </script>
+
+</head>
+<!-------------------- End Head section ---------------------------------------------- -->
+<body>
+    <form name="form1" method="post" action="OISP_ImportantThingsV2.aspx" id="form1">
+<div>
+<input type="hidden" name="ToolkitScriptManager1_HiddenField" id="ToolkitScriptManager1_HiddenField" value="" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<!-- <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNzY0ODk5NDc0DxYGHgluTGFQbHVzSURmHgdWR0ltcElEAgweBE1vZGUFBlVwZGF0ZRYCAgMPZBYQAi0PD2QPEBYBZhYBFgQeDERlZmF1bHRWYWx1ZQUCMTAeDlBhcmFtZXRlclZhbHVlZBYBAgNkZAIvDw9kFgIeB29uY2xpY2sFGGphdmFzY3JpcHQ6IGVuYWJsZUFsbCgpO2QCMQ8PZBYCHwUFY2phdmFzY3JpcHQ6IHJldHVybiBjb25maXJtKCJcbkFyZSB5b3Ugc3VyZSB5b3Ugd2FudCB0byBjYW5jZWwgd2hhdCB5b3UgaGF2ZSBlbnRlcmVkIG9uIHRoaXMgZm9ybT8iKWQCMw8PFgIeBFRleHQFDE1pY2tleSBNb3VzZWRkAjoPDxYCHgdWaXNpYmxlZ2RkAkAPD2QPEBYBZhYBFgQfAwUCMTIfBGQWAQIDZGQCQg8PZA8QFgFmFgEWBB8DBQIxMB8EZBYBAgNkZAJGDw8WAh8GBY8BJmNvcHk7IDIwMDQtMjAxOCBPZmZpY2UgZm9yIENpdGl6ZW5zIHdpdGggRGV2ZWxvcG1lbnRhbCBEaXNhYmlsaXRpZXMsIExvdWlzaWFuYSBEZXBhcnRtZW50IG9mIEhlYWx0aCAsIFN0YXRlIG9mIExvdWlzaWFuYS4gQWxsIHJpZ2h0cyByZXNlcnZlZC5kZBgBBR5fX0NvbnRyb2xzUmVxdWlyZVBvc3RCYWNrS2V5X18WAgUMaWJDbG9zZUVycm9yBQhpYkNhbmNlbJNYKyx99yBbg8mrVue5PDO9m1Yl" />
+-->
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+
+<script type="text/javascript">
+//<![CDATA[
+//if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<!-- <script src="/QA/ISP_LAPLUS/ISP_ImportantThingsV2.aspx?_TSM_HiddenField_=ToolkitScriptManager1_HiddenField&amp;_TSM_CombinedScripts_=%3b%3bAjaxControlToolkit%2c+Version%3d3.5.40412.0%2c+Culture%3dneutral%2c+PublicKeyToken%3d28f01b0e84b6d53e%3aen-US%3a1547e793-5b7e-48fe-8490-03a375b13a33%3a475a4ef5%3aeffe2a26%3a1d3ed089%3a5546a2b%3a497ef277%3aa43b07eb%3a751cdd15%3adfad98a5%3a3cf12cf1" type="text/javascript"></script> -->
+<div>
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="B888B064" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEWMgLAjKO6DgLToYONBwL5oqTVCQKLh8LkCAL5g6rmCAKvi764DgLQ3NqIAwKZlZmCCgLM9PumDwKTvavPDwKTve+9BQKZxe53AvKV5I4NAvO9mv8CAr+G5bgNApLI8Y4MAoSflYYBAu+k97oBAsKN+O0GAruDjtoCAuCnyMoPAsXvxqgHAoTExqcFAsm8xLoOAoznisYGAt/EvaMCAuLEvaMCAuHEvaMCAuTEvaMCAuPEvaMCAubEvaMCAp7js1ACnuOjUALNp9qQAgLNp8qQAgLokPilDALokOilDAKX1Z7mDQKX1Y7mDQKyvrz7BwKyvqz7BwLhguO7CQLhgtO7CQLYxL2jAgLXxL2jAgLaxL2jAgLZxL2jAgLcxL2jAgLknZvODAK/9fbGCqDofsBvcYvt3KUP7VVQESy76YXD" />
+</div>
+    <!--  <div>
+        <span id="SiteMapPath1" style="font-family:Verdana;font-size:0.8em;"><a href="#SiteMapPath1_SkipLink"><img alt="Skip Navigation Links" height="0" width="0" src="/QA/ISP_LAPLUS/WebResource.axd?d=1FiKjBZLLQd_unHWo5VsOyH5f_fe14zARH_3tZ3scKgGZ3-2zPCZk9TwSM9oH_MRxj2LFcOz-0EO5-tK0&amp;t=636271491501517547" style="border-width:0px;" /></a><span style="color:#FF8000;font-weight:bold;">
+                <a id="SiteMapPath1_ctl00_LinkButton1" class="FireBrick9" href="javascript:__doPostBack('SiteMapPath1$ctl00$LinkButton1','')">Applications</a>
+            </span><span style="color:#990000;font-weight:bold;"> : </span><span><a title="starting page" href="/QA/ISP_LAPLUS/LandingPageV1.aspx" style="color:#990000;font-weight:bold;">Landing</a></span><span style="color:#990000;font-weight:bold;"> : </span><span style="color:#333333;font-weight:bold;">Important Things</span><a id="SiteMapPath1_SkipLink"></a></span>
+    </div> -->
+    <div class="MasterPageTable">
+        <div class="rTableRow">
+            <div class="rTableCell" style="text-align: center">
+                <span class="PageTitle" lang="en-us" style="color: #800000">OCDD Individual Support
+                    Plan
+                    </span>
+            </div>
+        </div>
+        <div class="rTableRow">
+            <div class="rTableCell" style="text-align: right">
+                <input type="submit" name="ibtnLogoff" value="Log Off" id="ibtnLogoff" />
+               
+            </div>
+        </div>
+        
+        <div class="rTableRow">
+            <div class="rTableCell" >
+                <input type="hidden" name="rblList" id="rblList" />
+                <input type="hidden" name="ddlList" id="ddlList" />
+                <input type="hidden" name="hfRequestedCancel" id="hfRequestedCancel" />
+              
+                
+                <div class="rTableRow">
+                    <div class="rTableCellNB">
+                        <script type="text/javascript">
+//<![CDATA[
+//Sys.WebForms.PageRequestManager._initialize('ToolkitScriptManager1', document.getElementById('form1'));
+//Sys.WebForms.PageRequestManager.getInstance()._updateControls(['tlblMessage_UpdatePanel'], [], [], 90);
+//]]>
+</script>
+
+                        <div id="lblMessage_UpdatePanel">
+	
+                                <input type="submit" name="btnFakeShowPopup" value="Button" id="btnFakeShowPopup" style="display: none" />
+                                <div id="lblMessage_Panel" style="background-color:White;width:100%;">
+		
+                                    <span id="lblMessage" class="FireBrick9"></span>
+                                    
+                                    <br></br>
+                                    <input type="image" name="ibCloseError" id="ibCloseError" title="Close Message" onMouseOut="this.src='Images/Cancel.png'" onMouseOver="this.src='Images/CancelH.png'" src="Images/Cancel.png" alt="Close Error Message" style="border-width:0px;" />
+                                    <br></br>
+                                    <br></br>
+                                
+								</div>
+                                
+                            
+						</div>
+                    </div>
+                </div>
+                
+              
+              
+              
+                <!-- ---------------------Nav Button Section -----------------------------------------------  -->
+               <div id="NavBtns" 
+                    style="border-color: black; border-style: solid; background-color:#D9F2FF"> <!-- frame around nav buttons -->
+                   
+                    <div id="SectButtons">
+                        <!-- Start of Section Buttons -->
+                        <div id="Div1" style="display: block; vertical-align: middle;">
+                            <img id="imgDn1" alt="" src="Images/ExpandOn.png" height="20px" onclick="hdrLine1DownArrowV1();"/>
+                            <span id="lblHdrL1" style="font-size:X-Large;font-weight:bold;">Section Text goes here</span>
+                        </div>
+                    </div>
+                    <!-- End of Section Buttons  -->
+                    
+                    <!-- Start of Parts Buttons  -->
+                    <div id="PanelSect2" style="text-indent: 20%; text-align: left;">
+                        <div id="Div2" style="display: block; vertical-align: middle;">
+                            <img id="imgDn2" alt="" src="Images/ExpandOn.png" height="20px"  onclick="hdrLine2DownArrowV1();"/>
+                            <span id="lblHdrL2" style="font-size:Large;font-weight:bold;">Parts texts goes here</span>
+                        </div>
+                    </div>
+                    <!-- End of Parts Buttons  -->
+                    <!-- Command buttons ----->
+                      <a id="LinkButton1" href="javascript:__doPostBack('LinkButton1','')"></a> 
+
+                    <div id="cmBtnL1" style="display: block; padding: 2px 2px 2px 2px;">
+                      
+                        <button id="Navbtn1" style="width: 40%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('1');return false;"> HTMLSave</button>
+                        <button id="Navbtn2" style="width: 55%; text-align: left; vertical-align: top; font-weight:bold;"   onclick="fncsave('2');return false;"> HTMLSave</button>  
+                    </div>
+                    <div id="cmBtnL2" style="display: block; padding: 2px 2px 2px 2px;">
+                        <button id="Navbtn3" style="width: 40%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('3');return false;"> HTMLSave</button>
+                        <button id="Navbtn4" style="width: 55%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('4');return false;"> HTMLSave</button>
+                    </div>
+                    <div id="cmBtnL3" style="display: block; padding: 2px 2px 2px 2px;">
+                        <button id="Navbtn5" style="width: 40%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('5');return false;"> HTMLSave</button>
+                        <button id="Navbtn6" style="width: 55%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('6');return false;"> HTMLSave</button>
+                    </div>
+                    <div id="cmBtnL4" style="display: block; padding: 2px 2px 2px 2px;">
+                        <button id="Navbtn7" style="width: 40%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('7');return false;"> HTMLSave</button>
+                        <button id="Navbtn8" style="width: 55%; text-align: left; vertical-align: top; font-weight:bold;"  onclick="fncsave('8');return false;"> HTMLSave</button>
+                    </div>
+                    <!-- End Command buttons ----->
+                        <div style="display: block; padding: 2px 2px 2px 2px;">
+                        <input type="hidden" name="hfScrollNumberL1" id="hfScrollNumberL1" value="1" />
+                        <input type="hidden" name="hfScrollNumberL2" id="hfScrollNumberL2" value="1" />
+                        <input type="hidden" name="hfNavBtnSelected" id="hfNavBtnSelected" value="111A" />
+						<input type="hidden" name="hfNavBtnsToDisable" id="hfNavBtnsToDisable" value="235:313:316" />
+                        <input type="hidden" name="hfOtherBlk" id="hfOtherBlk" value="4;4,3;4,2;3,3;5,6" />
+                       
+                        <input type="hidden" name="hfHasErrrors" id="hfHasErrrors" />
+                        <input type="hidden" name="hfAdultChild" id="hfAdultChild" value="<%= ADObj.adultChild %>" />
+                        <input type="hidden" name="hfstatTracker" id="hfstatTracker" value="<%= ADObj.statTracker %>" />
+                         <input type="hidden" name="WhoGotClicked" id="WhoGotClicked" />
+                         <input type="hidden" name="hfParticipantView" id="hfParticipantView" />
+                         <input type="hidden" name="thidButtonId" id="thidButtonId" value="111" />
+                         
+						 <input type="hidden" name="hfappCntrl" id="hfappCntrl" value=""  />
+						 <input type="hidden" name="hfNavBtnID" id="hfNavBtnID" value="1:1:1:Navbtn1" />
+						 <input type="hidden" name="hfADObj" id="hfADObj" value="<%= ADObj %>" />
+						<input type="hidden" name="hfISPID" id="hfISPID"  value="<%= ADObj.ISPID %>" />
+						 <input type="hidden" name="hfnavCntrl" id="hfnavCntrl"  value='<%= navCntrlString %>' />
+						 <input type="hidden" name="hfstorageStr" id="hfstorageStr"  value=""/>
+                        
+                    
+                   
+                   
+                    </div>
+                </div>
+                <!-- end of frame around nav buttons   ->
+                <!-- End Header Section  -->
+                <!-- ********************************************************************************************************************************************************* -->
+                <div id="EditOrCancel">
+                    <div class="rTable" style="  border-color:Black; width:100%;">
+                        <div class="rTableRow">
+                            <div class="rTableCellNB" style="width: 1%">
+                                
+                            </div>
+                            <div class="rTableCellNB" style="width: 5%">
+                                <input type="image" name="ibCancel" id="ibCancel" title="Cancel" onMouseOut="this.src='Images/Cancel.png'" onMouseOver="this.src='Images/CancelH.png'" src="Images/Cancel.png"   onclick="confSubmit(this.form);" style="border-width:0px;" />
+                            </div>
+                            <div class="rTableCellNB" style="vertical-align:middle; font-size:large; font-weight:bolder; width:20%;" >
+                                <span id="lblName"><%= ADObj.perIdName %></span>
+                            </div>
+                            <div class="rTableCellNB" style="width: 5%; display:none; ">
+                                <input type="submit" name="btnAspClick" value="ASP Button" id="btnAspClick" style="width:10px;" />
+                            </div>
+                             <div class="rTableCellNB" style="width: 8%;  ">
+                              
+                            </div>
+                           <div class="rTableCellNB" style="text-align: right; vertical-align: middle;">
+                                <span id="StatBlk2" style="width: 25px; height: 25px; background-color: #99ff99;">Screen</span>
+                                &nbsp; <span id="StatBlkForm" style="width: 25px; height: 25px; background-color: #99ff99;">
+                                    Form</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <input type="submit" name="btnHelp" value="Help (a to e)" id="btnHelp" style="width:120px;" /><input type="submit" name="Button1" value="Help (f to l)" id="Button1" style="width:120px;" />
+                </div>
+                <div id="ContainerTbl">
+	
+                   
+                    <div id="HomeLife" style="background-color: #FDF3B0; width: 100%">
+                        <div style="background-color: #D9F2FF; border: solid 1px black;">
+                            <span id="Label26" style="font-size:Large;font-weight:bold;">1. Important Things to Know About </span>
+                            <span class="adult" style="font-size: large; font-weight: bold;">Me.</span>
+                            <span class="child" style="font-size: large; font-weight: bold;">Me and My Family.</span>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1a" style="font-weight:bold;vertical-align: top">a. </span>
+                                <!-- a -->
+                                <span id="Label29" style="vertical-align: top">Past important events and/or experiences that continue to impact </span>
+                                <span class="adult">my </span><span class="child">my family's </span>
+                                <span id="Label23" style="display:inline-block;height:30%;vertical-align: top">  life today</span>
+                                <textarea name="tbl1a" rows="2" cols="20" id="tbl1a" style="width:90%;"><%= fmData.tbl1a %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1b" style="font-weight:bold;vertical-align: top">b. </span>
+                                <!-- b -->
+                                <span id="Label2" style="vertical-align: top">Important roles that I have had in the past</span>
+                                <textarea name="tbl1b" rows="2" cols="20" id="tbl1b" style="width:90%;"><%= fmData.tbl1b %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1c" style="font-weight:bold;vertical-align: top">c. </span>
+                                <!-- c -->
+                                <span id="Label4" style="vertical-align: top">Important family/cultural values and traditions and how they impact  </span>
+                                <span class="adult">my </span><span class="child">my family's </span>
+                                <span id="Label24" style="vertical-align: top"> lifestyle  </span>
+                                <textarea name="tbl1c" rows="2" cols="20" id="tbl1c" style="width:90%;"><%= fmData.tbl1c %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1d" style="font-weight:bold;vertical-align: top">d. </span>
+                                <!-- d -->
+                                <span class="adult">My </span><span class="child">My family's </span>
+                                <span id="Label6" style="vertical-align: top"> primary concerns and/or priorities at this time</span>
+                                <textarea name="tbl1d" rows="2" cols="20" id="tbl1d" style="width:90%;"><%= fmData.tbl1d %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1e" style="font-weight:bold;vertical-align: top">e. </span>
+                                <!-- e -->
+                                <span id="Label8" style="vertical-align: top">Significant changes in </span>
+                                <span class="adult">my life or </span><span class="child">my life and/or my family's
+                                </span>
+                                <span id="Label25" style="vertical-align: top"> circumstance over the last year which have impacted goals, priorities, or needs</span>
+                                <textarea name="tbl1e" rows="2" cols="20" id="tbl1e" style="width:90%;"><%= fmData.tbl1e %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 2px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top; background-color: #FCED87;">
+                                <span id="lbl1f" style="font-weight:bold;vertical-align: top">f. </span>
+                                <!-- f -->
+                                <span id="Label10" style="vertical-align: top">Most important "must haves" or     "non-negotiables" for </span>
+                                <span class="adult">me </span><span class="child">me and my family </span>
+                                <textarea name="tbl1f" rows="2" cols="20" id="tbl1f" style="width:90%;"><%= fmData.tbl1f %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div class="rTableNB2">
+                                <div class="rTableRow">
+                                    <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                        <div class="rTableCell" style="width: 25%;">
+                                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top;">
+                                                <span id="lbl1g" style="font-weight:bold;vertical-align: top">g. </span>
+                                                <!-- g -->
+                                                <span id="Label12" style="vertical-align: top">Most important people in </span>
+                                                <span class="adult">my </span><span class="child">my </span>
+                                                <span id="Label27" style="vertical-align: top"> life (specific people I want/need in my life) </span>
+                                                <img alt="" src="Images/Transmit.png" onmouseover="this.src='Images/TransmitH.png'"
+                                                    onmouseout="this.src='Images/Transmit.png'" onclick="findHiddenTBs();" id="ShowNewRow" /></div>
+                                        </div>
+                                        <div class="rTableCell" id="mytbl">
+                                            <div class="rTableNB2" style="width: 100%;">
+                                                <div class="rTableRow">
+                                                    <div class="rTableCellNB" style="width: 40%; text-align: center;">
+                                                        Name of person
+                                                    </div>
+                                                    <div class="rTableCellNB" style="width: 55%">
+                                                        Relationship (including what they do for me/what I do for them)
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn1" rows="2" cols="20" id="tbl1gn1" style="height:25px;width:100%;"><%= fmData.tbl1gn1 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr1" rows="2" cols="20" id="tbl1gr1" style="height:25px;width:100%;"><%= fmData.tbl1gr1 %></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn2" rows="2" cols="20" id="tbl1gn2" style="height:25px;width:100%;"><%= fmData.tbl1gn2 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr2" rows="2" cols="20" id="tbl1gr2" style="height:25px;width:100%;"><%= fmData.tbl1gr2 %></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow" id="IHD_tb3p">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn3" rows="2" cols="20" id="tbl1gn3" style="height:25px;width:100%;"><%= fmData.tbl1gn3 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr3" rows="2" cols="20" id="tbl1gr3" style="height:25px;width:100%;"><%= fmData.tbl1gr3 %></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow" id="IHD_tb4p">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn4" rows="2" cols="20" id="tbl1gn4" style="height:25px;width:100%;"><%= fmData.tbl1gn4 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr4" rows="2" cols="20" id="tbl1gr4" style="height:25px;width:100%;"><%= fmData.tbl1gr4 %></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow" id="IHD_tb5p">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn5" rows="2" cols="20" id="tbl1gn5" style="height:25px;width:100%;"><%= fmData.tbl1gn5 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr5" rows="2" cols="20" id="tbl1gr5" style="height:25px;width:100%;"><%= fmData.tbl1gr5 %></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="rTableRow" id="IHD_tb6p">
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gn6" rows="2" cols="20" id="tbl1gn6" style="height:25px;width:100%;"><%= fmData.tbl1gn6 %></textarea>
+                                                    </div>
+                                                    <div class="rTableCellNB">
+                                                        <textarea name="tbl1gr6" rows="2" cols="20" id="tbl1gr6" style="height:25px;width:100%;"><%= fmData.tbl1gr6 %></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- end of inner table ---->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1h" style="font-weight:bold;vertical-align: top">h. </span>
+                                <!-- h -->
+                                <span id="Label14" style="vertical-align: top">Most important at-home activities, hobbies or routines </span>
+                                <textarea name="tbl1h" rows="2" cols="20" id="tbl1h" style="width:90%;"><%= fmData.tbl1h %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1i" style="font-weight:bold;vertical-align: top">i. </span>
+                                <!-- i -->
+                                <span id="Label16" style="vertical-align: top">Most important daytime (school, work, other) activities or routines </span>
+                                <textarea name="tbl1i" rows="2" cols="20" id="tbl1i" style="width:90%;"><%= fmData.tbl1i %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1j" style="font-weight:bold;vertical-align: top">j. </span>
+                                <!-- j -->
+                                <span id="Label18" style="vertical-align: top">Most important community/ social/recreation activities, hobbies or routines </span>
+                                <textarea name="tbl1j" rows="2" cols="20" id="tbl1j" style="width:90%;"><%= fmData.tbl1j %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1k" style="font-weight:bold;vertical-align: top">k. </span>
+                                <!-- k -->
+                                <span class="adult">My </span><span class="child">My family's </span>
+                                <span id="Label20" style="vertical-align: top"> personal strengths, talents, and resources </span>
+                                <textarea name="tbl1k" rows="2" cols="20" id="tbl1k" style="width:90%;"><%= fmData.tbl1k %></textarea>
+                            </div>
+                        </div>
+                        <div style="min-width: 30%; border: solid 1px black;">
+                            <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: top">
+                                <span id="lbl1l" style="font-weight:bold;vertical-align: top">l. </span>
+                                <!-- l -->
+                                <span id="Label22" style="vertical-align: top">Desirable characteristics/ qualities of those who provide support to  </span>
+                                <span class="adult">me </span><span class="child">me and my family </span>
+                                <textarea name="tbl1l" rows="2" cols="20" id="tbl1l" style="width:90%;"><%= fmData.tbl1l %></textarea>
+                            </div>
+                        </div>
+                    </div>
+                
+</div>
+            </div>
+        </div>
+        
+        <div class="rTableRow">
+            <!-- ---------------- Nav Block  ----------------------------- -->
+            <div class="rTableCell">
+                <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: middle;">
+                    <img alt="" src="Images/Insert.png" style="width: 30px; height: 30px;" onclick=" businessRule_S1_1(true);" />
+                    &nbsp; &nbsp;
+                    <input type="submit" name="ibtnPrevious" value="Previous" id="ibtnPrevious" style="font-size:Medium;font-weight:bold;" />
+                    &nbsp; &nbsp;
+                    <input type="submit" name="ibtnNext" value="Next" id="ibtnNext" style="font-size:Medium;font-weight:bold;" />
+                <button onclick="findtxtbx();">Click me</button>
+				</div>
+            </div>
+        </div>
+        
+        <div>
+        <!-- adapter blocks go here ------------------------------------- -->
+                           
+        </div>
+             
+         <div class="rTableRow">
+            <div class="rTableCellNB">
+                          
+                <div>
+                    <span id="lblNotice" class="smText">&copy; 2004-2018 Office for Citizens with Developmental Disabilities, Louisiana Department of Health , State of Louisiana. All rights reserved.</span>
+                </div>
+                <div>
+                    <span id="lblTimer">Label</span>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+        
+    </div>
+</form>
+    <script type="text/javascript">
+        //<![CDATA[
+	
+  $( document ).ready(function() {
+   
+    
+		    initialHide()
+			 hdrLine1DownArrowV1('Display');
+			 
+            //businessRule_S1_1(false);
+			 setTimeout(businessRule_S1_1, 200, false); 
+			
+            // --display test for either the child or adult ----
+            //-- both child and adult text are in spans, erase the one not needed ---
+            var ac = $('#hfAdultChild')[0].value;
+            var acX = 'adult';
+            if (ac == 'adult') acX = 'child'
+            $('[class^="' + acX + '"]').each(function() {
+                $(this).context.innerText = ""
+
+            });
+
+
+            $('[id^="ibtn"]').click(function() {
+                // alert($(this).context.id);
+                businessRule_S1_1(false);
+
+            });
+            
+            findtxtbx(); 
+		      
+        });
+				
+		
+        //]]>
+    </script>
+
+    
+
+<script type="text/javascript">
+//<![CDATA[
+//(function() {var fn = function() {$get("ToolkitScriptManager1_HiddenField").value = '';Sys.Application.remove_init(fn);};Sys.Application.add_init(fn);})();Sys.Application.initialize();
+//Sys.Application.add_init(function() {
+//    $create(Sys.Extended.UI.ModalPopupBehavior, {"BackgroundCssClass":"modalBackground","CancelControlID":"ibCloseError","DropShadow":true,"PopupControlID":"lblMessage_Panel","dynamicServicePath":"/QA/ISP_LAPLUS/ISP_ImportantThingsV2.aspx","id":"lblMessage_ModalPopupExtender"}, null, null, $get("btnFakeShowPopup"));
+//});
+//]]>
+</script>
+
+</body>
+</html>

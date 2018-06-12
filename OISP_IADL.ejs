@@ -1,0 +1,1443 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1">
+    <title>OCDD ISP </title>
+    <link href="Styles.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" language="javascript" src="jquery/jquery-1.12.3.js"></script>
+    <script type="text/javascript" language="javascript" src="jquery/jquery-1.12.3.min.js"></script>
+    <script type="text/javascript" language="javascript" src="ISP_No_MP.js"></script>
+    <script type="text/javascript" language="javascript">
+
+        function fncsave(btnNum) {
+	         // alert($('#thidButtonId')[0].value + "--" + $('#hfScrollNumberL1')[0].value + $('#hfScrollNumberL2')[0].value + btnNum);
+	         $('#hfNavBtnID')[0].value = $('#hfScrollNumberL1')[0].value + ":" + $('#hfScrollNumberL2')[0].value + ":" + btnNum + ":Navbtn" + btnNum;
+	         // alert($('#hfNavBtnID')[0].value)
+	         if ($('#hfScrollNumberL1')[0].value + $('#hfScrollNumberL2')[0].value + btnNum == $('#thidButtonId')[0].value) {
+
+	             $('#WhoGotClicked')[0].value = "bme"; // just clicked myself
+	         } else {
+	             $('#WhoGotClicked')[0].value = btnNum;
+	             // alert(btnNum + " L1:" + $('#hfScrollNumberL1')[0].value + " L2:" + $('#hfScrollNumberL2')[0].value);
+	         
+			 $('#hfNavBtnSelected')[0].value = $('#hfScrollNumberL1')[0].value +  $('#hfScrollNumberL2')[0].value +  btnNum + "A";
+			 buildNavCntrl();
+			buildJSONFile();
+			
+          	 __doPostBack('btnAspClick', '')
+	         //    return false;
+	         }
+	     }
+        //
+		 function buildJSONFile(){
+		
+		// ------- Build AppCntrl string to return and save by nodejs server---------
+		var appCntrlStr = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIdName":"' + $('#lblName').text();
+		appCntrlStr +='","adultChild":"' + $('#hfAdultChild')[0].value +'","statTracker":"' + $('#hfstatTracker')[0].value +  '"}';
+		$('#hfappCntrl')[0].value = appCntrlStr
+				
+		 // ------- Build returning data string to  save by nodejs server---------
+		 var jString = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIDname":"' + $('#lblName').text();
+		  $('input[type=text], textarea').each(function() {
+             jString += '","' + $(this).context.id + '":"' + ($(this).context.value).replace(/"/gi, "*");
+		  });
+		   jString += '"}';
+		   $('#hfstorageStr')[0].value = jString
+		 }
+		 
+		 function buildNavCntrl(){
+		 // rebuild nav control now the user has made a selection 
+		 var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		  myObj.FA = 'S';
+		  myObj.thisFm = '222A';
+		  myObj.nextFm = $('#hfNavBtnSelected')[0].value;
+		  myObj.nextPg ='1';
+		  myObj.hfScrollNumberL1 = $('#hfScrollNumberL1')[0].value;
+		  myObj.hfScrollNumberL2 = $('#hfScrollNumberL2')[0].value;
+		  myObj.hfNavBtnID = $('#hfNavBtnID')[0].value;
+		  $('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+		 alert($('#hfnavCntrl')[0].value);
+		 
+		  // $('#hfnavCntrl')[0].value = 'S:' +'111A:' +    $('#hfNavBtnSelected')[0].value
+	   }
+		
+		
+		
+		
+		
+        function SelClick(btnID) {
+            if ($('#hfParticipantView')[0].value) { return; } // if this is a viewonly request, no need for editing
+            // alert("cb" + btnID);
+            if ($('#cbTechEquip' + btnID).is(':checked')) {
+                $('#WhoGotClicked')[0].value = btnID + ":Checked";
+				 buildNavCntrl();
+                __doPostBack('btnATsel', '')
+            } else {
+                if (confirm("Are you sure you want to delete?")) {
+                    $('#WhoGotClicked')[0].value = btnID + ":Unchecked";
+					 buildNavCntrl();
+                    __doPostBack('btnATsel', '')
+                } else {
+                    //  -- return check mark to checkbox ----
+                    document.getElementById("cbTechEquip" + btnID).checked = false;
+                    document.getElementById("cbTechEquip" + btnID).checked = true;
+                }
+            }
+        }
+		
+		//function buildNavCntrl(){
+		 // rebuild nav control now the user has made a selection 
+		//   $('#hfnavCntrl')[0].value = 'S:' +'222A:' +    $('#hfNavBtnSelected')[0].value
+		//}
+		
+        function editClick(btnID) {
+            if ($('#hfParticipantView')[0].value) { return; } // if this is a viewonly request, no need for editing
+            $('#WhoGotClicked')[0].value = btnID + ":Edit";
+            __doPostBack('btnATsel', '')
+
+        }
+
+
+        function childHide() {
+            $(document).ready(function() {
+                for (var iIndex = 1; iIndex < 14; iIndex++) {
+                    if ($("[id*='ddlTOS" + iIndex + "']").length) {           // does this block exist?
+                        // -- TOS block exists --------
+                        //  alert($("[id*='hfChildHide" + iIndex + "']")[0].value)
+                        if ($("[id*='hfChildHide" + iIndex + "']")[0].value == 'hide') {
+                            $("[id*='ddlTOS" + iIndex + "']").val("0");
+                            $("[id*='TOSSpan" + iIndex + "']").hide();
+                            $("[id*='ddlTOS" + iIndex + "']").hide();
+                            $("[id*='PrefSpan" + iIndex + "']").hide();
+                            $("[id*='cblPref" + iIndex + "']").hide();
+                        }
+                    }
+                }
+            });
+        }
+		
+		 function confSubmit(form) {
+		 var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		 
+		 
+           if (confirm("\nAre you sure you want to cancel what you have entered on this form?")) {
+          // ----establish value of NavCntrl, used if user hits Cancel. This is like a reload 
+		   myObj.FA = "N";  // --- don't save data from this postback
+		   myObj.nextFm = myObj.thisFm //-- point to same form --
+		   
+		  $('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+		   form.submit();
+            }else {
+                event.preventDefault();
+				return false;
+            }
+         }
+		
+		function btnNext(){
+		var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		 myObj.nextFm = myObj.thisFm //-- point to same form --
+		 
+		var maxPgCt = 0;
+		 if(myObj.thisFm == "222A") {
+		   maxPgCt = 4;
+		  }
+		  if (Number(myObj.thisPg) + 1 > maxPgCt){
+		   myObj.nextPg = maxPgCt.toString()
+		  }else{
+		   myObj.nextPg = (Number(myObj.thisPg) + 1).toString()
+		  }
+		  myObj.FA = "S";
+		 
+		 $('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+		// alert($('#hfnavCntrl')[0].value);
+		
+		// ------- Build AppCntrl string to return and save by nodejs server---------
+		var appCntrlStr = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIdName":"' + $('#lblName').text();
+		appCntrlStr +='","adultChild":"' + $('#hfAdultChild')[0].value +'","statTracker":"' + $('#hfstatTracker')[0].value +  '"}';
+		$('#hfappCntrl')[0].value = appCntrlStr
+		}
+		
+		function btnPrevious(){
+		var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		 myObj.nextFm = myObj.thisFm //-- point to same form --
+		 if (Number(myObj.thisPg) > 1){
+			myObj.nextPg = (Number(myObj.thisPg) - 1).toString()
+			myObj.FA = "S";
+		}
+		$('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+		// alert($('#hfnavCntrl')[0].value);
+		
+		// ------- Build AppCntrl string to return and save by nodejs server---------
+		var appCntrlStr = '{"ISPID":"' + $('#hfISPID')[0].value + '","perIdName":"' + $('#lblName').text();
+		appCntrlStr +='","adultChild":"' + $('#hfAdultChild')[0].value +'","statTracker":"' + $('#hfstatTracker')[0].value +  '"}';
+		$('#hfappCntrl')[0].value = appCntrlStr
+		}
+		
+        function businessRule(showMsg) {   //--- for ISP_ImportantThings.aspx ---------------
+            //   if ($('#hfRequestedCancel')[0].value) { return; } //--no reason to check if user canceled
+            $(document).ready(function() {
+			
+			   // get this page number -------
+			   var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+		       var thisPg = myObj.thisPg
+			   console.log('thisPg =' + thisPg);
+
+                // hide all edit buttons where checkbox is not checked item e ---
+                for (var gIndex = 1; gIndex < 5; gIndex++) {
+                    var ObjID = 'cbTechEquip' + gIndex
+                    var objPanel = 'btnEdit' + gIndex
+                    if ($('#' + ObjID).is(":checked")) {
+                        $("#" + objPanel).show();
+                    } else {
+                        $("#" + objPanel).hide();
+                    }
+
+
+                }
+
+
+                var InsVal = "y";
+                var Myerrbody = "";
+
+                //     if ($('#hfRequestedCancel')[0].value) { return; } //--no reason to check if user canceled
+				
+				var endBlk = 1;
+				if(thisPg == '4'){
+					endBlk = 1
+				}else {
+					endBlk = 4
+				}
+				
+
+                for (var iIndex = 1; iIndex <= endBlk; iIndex++) {
+                    if ($("[id*='ddlTOS" + iIndex + "']").length) {           // does this block exist?
+                        // -- TOS block exists --------
+                        var Myerrmsg = "";
+                        if ($("[id*='ddlTOS" + iIndex + "']").val() > 1) {     // is TOS > 0 ?
+
+                            if ($("[id*='ddlFreq" + iIndex + "']").val() == '0') {                 // was Freq selected?
+                                //  alert("Not checked-Freq");
+                                Myerrmsg += " Frequency ** ";
+                            }
+                            if (!$("input:radio[id*='rblTraining" + iIndex + "']:checked").val()) {  // was a training radio button checked?
+                                //  alert("Not checked-rb");
+                                Myerrmsg += " Training ** ";
+                            }
+                            if ($("[id*='ddlRisk" + iIndex + "']").val() == '0') {              // was Risk level selected?
+                                // alert("Not checked-RC");
+                                Myerrmsg += " Risk Level **";
+                            }
+                            if (!$("input:checkbox[id*='cblRisk" + iIndex + "']:checked").val()) {  // --Checkbox list 
+                                //  alert("Not checked-RCcb");
+                                Myerrmsg += " Risk Checkboxes **";
+                            }
+                            var OtherOn = false
+                            $("input:checkbox[id*='cblRisk" + iIndex + "']:checked").each(function() {  // -- Other check box ---
+                                if ($(this).next().html() == "Other:") {
+                                    if ($(this).val() == 'on' || $(this).val().length > 0) { OtherOn = true; }
+                                    //  alert('-Other-');
+                                }
+                            });
+                            if (OtherOn == true) {
+                                if ($("[id*='tblRiskOther" + iIndex + "']").val().trim().length == 0) {  // -- Other Text box, is it empty
+                                    //   alert("no Other content-rc");
+                                    Myerrmsg += " Risk - Other: textbox **";
+                                }
+
+                            }
+                            // this keeps the Next or Previous buttons from firing only if tos is selected but not completed
+                            //   if (Myerrmsg.length != "") event.preventDefault();
+
+                        } else {
+                            if ($("[id*='ddlTOS" + iIndex + "']").val() == '0' && $("[id*='hfChildHide" + iIndex + "']")[0].value == 'show') {
+                                Myerrmsg += "Must select Type of Support **";
+                            }
+
+                        }
+
+                        //  ---- Preference section ----------------------
+                        if (!$("input:checkbox[id*='cblPref" + iIndex + "']:checked").val()) {
+                            // alert("Not checked-Prefcb");
+                            Myerrmsg += " Preference Checkboxes **";
+                        }
+                        var OtherOn2 = false
+                        $("input:checkbox[id*='cblPref" + iIndex + "']:checked").each(function() {
+                            if ($(this).next().html() == "Other:") {
+                                if ($(this).val() == 'on' || $(this).val().length > 0) { OtherOn2 = true; }
+                                //  alert('-Other-')
+
+                            }
+                        });
+                        if (OtherOn2 == true) {
+                            if ($("[id*='tblPrefOther" + iIndex + "']").val().trim().length == 0) {
+                                //   alert("no Other content-pref");
+                                Myerrmsg += " Preference - Other: textbox **";
+                            }
+                        }
+                        var ltr = $('#lblBlkTitleLtr' + iIndex)[0].innerHTML.substr(0, 1);
+                        var pg = $('#hfThisPgID')[0].value
+                        if (Myerrmsg.length == "") {
+                            $('#lblBlkTitleLtr' + iIndex).css('color', 'black');
+                            //--- track page level errors --------------
+                            statTrackerUpdateV2(pg, '0', ltr, 'y');
+                        } else {
+                            $('#lblBlkTitleLtr' + iIndex).css('color', 'red');
+                            Myerrbody = Myerrbody + "\n ( " + $("[id*='lblBlkTitle" + iIndex + "']").text() + " )" + Myerrmsg
+                            //--- track page level errors --------------
+                            //  alert(pg + ' ' + ltr);
+                            statTrackerUpdateV2(pg, 'n', ltr, 'n');
+                            // alert(Myerrmsg);
+                        }
+                    }  //----- end of does this block exist? ------
+                }     //----- end of FOR loop ---------------------
+
+                // ---------- generate error message if needed ---------------------------------
+                $('#StatBlk2').css('background-color', '#99ff99');     //this is green
+
+                if (Myerrbody.length != "") {
+
+                    if (showMsg) {
+                        Myerrbody = "Following are the missing items: \n" + Myerrbody
+                        alert(Myerrbody);
+
+                    }
+                    $('#StatBlk2').css('background-color', '#ff6666');      // this is red
+                    InsVal = "n";
+                }
+                // now update statTracker for entire form
+                //   determine which page we are in. hfThisPgID is set in the vb code
+                var pg = $('#hfThisPgID')[0].value
+
+                // alert($('#lblBlkTitleLtr1')[0].innerHTML)
+                statTrackerUpdateV2(pg, InsVal, '0', '0');
+
+                if (showMsg) return false;
+
+            });
+        }
+    </script>
+
+</head>
+<body>
+    <form name="form1" method="post" action="LaPlus_ADL_IADL.aspx" id="form1">
+    <div>
+        <input type="hidden" name="ToolkitScriptManager1_HiddenField" id="ToolkitScriptManager1_HiddenField"
+            value="" />
+        <input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+        <input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+       
+    </div>
+
+    <script type="text/javascript">
+        //<![CDATA[
+        var theForm = document.forms['form1'];
+        if (!theForm) {
+            theForm = document.form1;
+        }
+        function __doPostBack(eventTarget, eventArgument) {
+            if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+                theForm.__EVENTTARGET.value = eventTarget;
+                theForm.__EVENTARGUMENT.value = eventArgument;
+                theForm.submit();
+            }
+        }
+        //]]>
+    </script>
+
+    <!--
+
+    <!-- this is clear outside container -->
+    <div style="padding: 5px 5px 5px 5px;">
+        <div class="MasterPageTableLaPlus">
+            <div class="rTableRow">
+                <div class="rTableCell" style="text-align: center;">
+                    <div class="rTableNB">
+                        <div class="rTableRow">
+                            <div class="rTableCellNB" style="text-align: center">
+                                <span class="PageTitle" lang="en-us" style="color: #800000">LAPLUS </span>
+                            </div>
+                            <div class="rTableCellNB" style="text-align: right; width: 8%;">
+                                <input type="submit" name="ibtnLogoff" value="Log Off" id="ibtnLogoff" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB">
+
+                    <script type="text/javascript">
+                        //<![CDATA[
+                        //Sys.WebForms.PageRequestManager._initialize('ToolkitScriptManager1', document.getElementById('form1'));
+                        //Sys.WebForms.PageRequestManager.getInstance()._updateControls(['tlblMessage_UpdatePanel'], [], [], 90);
+                        //]]>
+                    </script>
+
+                    <div id="lblMessage_UpdatePanel">
+                        <input type="submit" name="btnFakeShowPopup" value="Button" id="btnFakeShowPopup"
+                            style="display: none" />
+                        <div id="lblMessage_Panel" style="background-color: White; width: 400px;">
+                            <span id="lblMessage" class="FireBrick9"></span>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <input type="image" name="ibCloseError" id="ibCloseError" title="Close Error Message"
+                                onmouseout="this.src='Images/Cancel.png'" onmouseover="this.src='Images/CancelH.png'"
+                                src="Images/Cancel.png" alt="Close Error Message" style="border-width: 0px;" />
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                            <br></br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCell" style="text-align: center">
+                    <span id="lblWorkSheetHeader" style="font-size: XX-Large; font-weight: bold;">IADL Worksheet</span>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCell" style="padding: 0px 0px 0px 0px; border: none;">
+                    <input type="hidden" name="hfScrollNumberL1" id="hfScrollNumberL1" value='<%var navObj = JSON.parse(navCntrlString)  %> <%=navObj.hfScrollNumberL1 %>'/>
+                    <input type="hidden" name="hfScrollNumberL2" id="hfScrollNumberL2" value='<%var navObj = JSON.parse(navCntrlString)  %> <%=navObj.hfScrollNumberL2 %>'/>
+                    <input type="hidden" name="hfNavBtnID" id="hfNavBtnID" value='<%var navObj = JSON.parse(navCntrlString)  %> <%=navObj.hfNavBtnID %>'/>
+					<input type="hidden" name="thidButtonId" id="thidButtonId" value="222" />
+				   	<input type="hidden" name="hfNavBtnSelected" id="hfNavBtnSelected" value="222A" />
+                    <input type="hidden" name="rblList" id="rblList" value="Training1,Training2,Training3,Training4" />
+                    <input type="hidden" name="ddlList" id="ddlList" value="TOS1,TOS2,TOS3,TOS4" />
+                    <input type="hidden" name="cblList" id="cblList" value="Risk1,Pref1,Risk2,Pref2,Risk3,Pref3,Risk4,Pref4" />
+                    <input type="hidden" name="hfstorageStr" id="hfstorageStr" />
+                    <input type="hidden" name="hfRequestedCancel" id="hfRequestedCancel" />
+                    <input type="hidden" name="WhoGotClicked" id="WhoGotClicked" />
+                    <input type="hidden" name="HFreadOnly" id="HFreadOnly" value="1" />
+                    <input type="hidden" name="hfOtherBlk" id="hfOtherBlk" value="4" />
+                    <input type="hidden" name="hfThisPgID" id="hfThisPgID" value="I2b210" />
+					
+					<input type="hidden" name="hfappCntrl" id="hfappCntrl" value=""  />
+					<input type="hidden" name="hfnavCntrl" id="hfnavCntrl"  value='<%= navCntrlString %>' />
+					<input type="hidden" name="hfISPID" id="hfISPID"  value="<%= ADObj.ISPID %>" />
+					<input type="hidden" name="hfAdultChild" id="hfAdultChild" value="<%= ADObj.adultChild %>" />
+                    <input type="hidden" name="hfstatTracker" id="hfstatTracker" value="<%= ADObj.statTracker %>" />
+					
+					
+                    <span class="PageTitle" lang="en-us">
+                        <input type="hidden" name="hfParticipantView" id="hfParticipantView" />
+                    </span>
+                    <input type="hidden" name="hfAbbreviatedLaPlus" id="hfAbbreviatedLaPlus" value="False" />
+                    <br />
+                </div>
+            </div>
+			
+			<div class="rTableRow">
+				<div class="rTableCell" style="width: 100%">
+               
+					<!-- ---------------------Nav Button Section -----------------------------------------------  -->
+					<div id="NavBtns" style="border-color: black; border-style: solid; background-color: #D9F2FF">
+						<!-- frame around nav buttons -->
+						<div id="SectButtons">
+							<!-- Start of Section Buttons -->
+							<div id="Div1" style="display: block; vertical-align: middle;">
+								<img id="imgDn1" alt="" src="Images/ExpandOn.png" height="20px" onclick="hdrLine1DownArrowV1();" />
+								<span id="lblHdrL1" style="font-size:X-Large;font-weight:bold;">Section Text goes here</span>
+							</div>
+						</div>
+						<!-- End of Section Buttons  -->
+						<!-- Start of Parts Buttons  -->
+						<div id="PanelSect2" style="text-indent: 20%; text-align: left;">
+							<div id="Div2" style="display: block; vertical-align: middle;">
+								<img id="imgDn2" alt="" src="Images/ExpandOn.png" height="20px" onclick="hdrLine2DownArrowV1();" />
+								<span id="lblHdrL2" style="font-size:Large;font-weight:bold;">Parts texts goes here</span>
+							</div>
+						</div>
+						<div id="cmBtnL1" style="display: block; padding: 2px 2px 2px 2px;">
+							<button id="Navbtn1" style="width: 40%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('1');return false;">
+								HTMLSave</button>
+							<button id="Navbtn2" style="width: 55%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('2');return false;">
+								HTMLSave</button>
+							
+						</div>
+						<div id="cmBtnL2" style="display: block; padding: 2px 2px 2px 2px;">
+							<button id="Navbtn3" style="width: 40%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('3');return false;">
+								HTMLSave</button>
+							<button id="Navbtn4" style="width: 55%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('4');return false;">
+								HTMLSave</button>
+						</div>
+						<div id="cmBtnL3" style="display: block; padding: 2px 2px 2px 2px;">
+							<button id="Navbtn5" style="width: 40%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('5');return false;">
+								HTMLSave</button>
+							<button id="Navbtn6" style="width: 55%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('6');return false;">
+								HTMLSave</button>
+						</div>
+						<div id="cmBtnL4" style="display: block; padding: 2px 2px 2px 2px;">
+							<button id="Navbtn7" style="width: 40%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('7');return false;">
+								HTMLSave</button>
+							<button id="Navbtn8" style="width: 55%; text-align: left; vertical-align: top; font-weight: bold;"
+								onclick="fncsave('8');return false;">
+								HTMLSave</button>
+						</div>
+						<!-- End Command buttons ----->
+					</div>
+				</div>
+            </div>
+			
+			
+            <div class="rTableRow">
+                <div class="rTableCell">
+                    <div class="rTableNB">
+                        <div class="rTableRow">
+                            <div class="rTableCellNB" style="width: 1%">
+                            </div>
+                            <div class="rTableCellNB" style="width: 4%">
+                                <input type="image" name="ibCancel" id="ibCancel" title="Cancel" onmouseout="this.src='Images/Cancel.png'"
+                                    onmouseover="this.src='Images/CancelH.png'" src="Images/Cancel.png" onclick="confSubmit(this.form);"  style="border-width: 0px;" />
+                            </div>
+                            <div class="rTableCellNB" style="vertical-align: middle; font-size: large; font-weight: bolder;
+                                width: 20%;">
+                                <span id="lblName"><%= ADObj.perIdName %></span>
+                            </div>
+                            <div class="rTableCellNB" style="width: 5%; display: none;">
+                                <input type="submit" name="ibtnAspClick" value="ASP Button" id="ibtnAspClick" style="width: 79px;" />
+                                <input type="submit" name="btnATsel" value="Button" id="btnATsel" />
+                            </div>
+                            <div class="rTableCellNB" style="text-align: right; vertical-align: middle;">
+                                <span id="StatBlk2" style="width: 25px; height: 25px; background-color: #99ff99;">Screen</span>
+                                &nbsp; <span id="StatBlkForm" style="width: 25px; height: 25px; background-color: #99ff99;">
+                                    Form</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCell">
+                    <!-- ---------------- Block Fast Buttons --------------------- -->
+                    <input type="submit" name="btnHelp" value="Help" id="btnHelp" style="width: 120px;" />
+                    <input type="submit" name="ibtnISP_ADL" value="Return to ISP" id="ibtnISP_ADL" style="width: 150px;" />
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB2">
+                    <!-- ---------------- Block 1 ----------------------------- -->
+                    <div id="Block1"<%if (fmData.TOS1 == "99"){%> style="display:none" <%}%> >
+                        <div class="rTableNB2" id="Div13" style="width: 100%; border-color: Gray;">
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableRow">
+                                        <div class="rTableCellNB" id="Div3" style="display: block; padding: 2px 2px 2px 2px;
+                                            vertical-align: top;">
+                                            <span id="lblBlkTitleLtr1" style="font-weight: bold;"><% var d = "B" + pageNo + "1"  %><%=cblData[d][0].ltr %></span>
+											<span id="lblBlkTitle1" style="color: Black; font-weight: bold;"><% var d = "B" + pageNo + "1"  %><%=cblData[d][0].title %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableNB3">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" id="TOS1">
+                                                <input type="hidden" disabled name="hfChildHide1" id="hfChildHide1" value="show"  />
+                                                <input type="hidden" disabled  name="hfTOS1" id="hfTOS1" value="R:2:5:S:IHD_rcBlock1,R:2:5:S:IHD_Training1,R:2:5:S:CareGiver1,R:2:5:S:Freq1,R:0:1:H:pRC1,R:0:1:H:ptr1,R:0:1:H:CareGiver1,R:0:1:H:Freq1" />
+                                                <span id="TOSSpan1" style="width: 100%; font-size: small; color: Maroon;">Type of Support</span><p>
+                                                    <select name="ddlTOS1" id="ddlTOS1" onchange="HideShowDDL2('TOS1')" style="font-size: Small;
+                                                        width: 190px;">
+                                                        <option <%if (fmData.TOS1 == 0){%> selected="selected" <%}%> value="0">Sel One</option>
+											     		<option <%if (fmData.TOS1 == 1){%> selected="selected" <%}%> value="1">no support</option>
+														<option <%if (fmData.TOS1 == 2){%> selected="selected" <%}%> value="2">monitoring/reminders</option>
+														<option <%if (fmData.TOS1 == 3){%> selected="selected" <%}%> value="3">verbal/gestural prompts</option>
+														<option <%if (fmData.TOS1 == 4){%> selected="selected" <%}%> value="4">some physical</option>
+														<option <%if (fmData.TOS1 == 5){%> selected="selected" <%}%> value="5">full physical</option>
+													</select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="Freq1">
+                                                <span id="Label7" style="color: Maroon; font-size: Small;">Frequency</span><p>
+                                                    <select name="ddlFreq1" id="ddlFreq1" style="font-size: Small; width: 290px;">
+                                                        <option <%if (fmData.Freq1 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                        <option <%if (fmData.Freq1 == 1){%> selected="selected" <%}%>  value="1">rarely (less than once per month)</option>
+                                                        <option <%if (fmData.Freq1 == 2){%> selected="selected" <%}%>  value="2">monthly (up to 3 times per month)</option>
+                                                        <option <%if (fmData.Freq1 == 3){%> selected="selected" <%}%>  value="3">occasional weekly (1-3 days per week)</option>
+                                                        <option <%if (fmData.Freq1 == 4){%> selected="selected" <%}%>  value="4">regular weekly (4-6 days per week)</option>
+                                                        <option <%if (fmData.Freq1 == 5){%> selected="selected" <%}%>  value="5">daily</option>
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="CareGiver1" style="width: 50%">
+                                                <span id="Label10" style="color: Maroon; font-size: Small;">Caregiver instructions</span><p>
+                                                    <textarea name="tblcgi1" rows="2" cols="20" id="tblcgi1" style=" width: 600px;"><%= fmData.CareGiverInst1 %></textarea>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pRC1">
+                                    <!-- Risk/Challenges Section  -->
+                                    <div class="rTableNB" id="IHD_rcBlock1" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="height: 30px; width: 209px;">
+                                                            <p>
+                                                                <span id="Span2" style="color: Maroon; font-size: small;">Risk/Challenges</span></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="font-size: small">
+                                                            Overall Impact
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <select name="ddlRisk1" id="ddlRisk1" style="font-size: Small;">
+                                                                <option <%if (fmData.OverallRisk1 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                                <option <%if (fmData.OverallRisk1 == 1){%> selected="selected" <%}%>  value="1">Low</option>
+                                                                <option <%if (fmData.OverallRisk1 == 2){%> selected="selected" <%}%>  value="2">Moderate</option>
+                                                                <option <%if (fmData.OverallRisk1 == 3){%> selected="selected" <%}%>  value="3">High</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" name="hfRisk1" id="hfRisk1" value="IHD_pRCO1"  />
+                                                            <table id="cblRisk1" cellspacing="0" cellpadding="0" onclick="whichCB('Risk1')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; width: 98%;
+                                                                border-collapse: collapse;">
+                                                           <% var rpName = "Risk1" %><% var rpVal = fmData.Risk1 %> <% var d = "R" + pageNo + "1"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="display: block;">
+                                                            <div id="IHD_pRCO1">
+                                                                <span id="Label9" style="font-size: Small;">Other:</span>
+                                                                <textarea name="tblRiskOther1" rows="2" cols="20" id="tblRiskOther1" style="
+                                                                    width: 90%;"><%= fmData.RiskOther1 %></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pP1">
+                                    <!-- Preferences Section  -->
+                                    <div class="rTableNB">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 21%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <span id="PrefSpan1" style="color: Maroon; font-size: small;">Preferences</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" name="hfPref1" id="hfPref1" value="IHD_pPO1"  />
+                                                            <table id="cblPref1" cellspacing="0" cellpadding="0" onclick="whichCB('Pref1')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; height: 16px;
+                                                                width: 100%; border-collapse: collapse;">
+                                                               <% var rpName = "Pref1" %><% var rpVal = fmData.Pref1 %> <% var d = "P" + pageNo + "1"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <div id="IHD_pPO1">
+                                                                <span id="Label4" style="font-size: Small;">Other:</span>
+                                                                <textarea name="tblPrefOther1" rows="2" cols="20" id="tblPrefOther1" style=" width: 90%;"><%= fmData.PrefOther1 %></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  -------------AT  ------------------>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="Div18">
+                                    <div class="rTableNB" id="Div19" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 80%;">
+                                                <span id="ATtitle1" style="color: Maroon; font-size: Small;">Technology/ equipment/
+                                                    mods:</span> <span style="font-size: Small;">
+                                                        <input id="cbTechEquip1" type="checkbox" name="cbTechEquip1"  <% if(fmData.TechEquip1 != -1){%> checked="checked" <%}%> 
+														onclick="SelClick('1');" /></span>
+                                                &nbsp; &nbsp;<input id="btnEdit1" type="button" value="Edit" title="Edit" onclick="editClick('1');" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="ptr1">
+                                    <!-- Training  -->
+                                    <div class="rTableNB" id="IHD_Training1">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%;">
+                                                <input type="hidden" disabled name="hfTraining1" id="hfTraining1" value="20:IHD_Trainingt1" />
+                                                <span id="Label8" style="color: Maroon; font-size: Small;">Training/Skill Building</span>
+                                                <table id="rblTraining1" cellspacing="0" cellpadding="0" onclick="GrayOutWithPanelV1('Training1')"
+                                                    border="0" style="font-size: Small; width: 120px; border-collapse: collapse;">
+                                                    <tr>
+                                                        <td>
+                                                            <input id="rblTraining1_0" type="radio" name="rblTraining1"  value="0" <%if (fmData.Training1 == 0){%> checked="checked" <%}%> />
+															<label for="rblTraining1_0">Yes</label>
+                                                        </td>
+                                                        <td>
+                                                            <input id="rblTraining1_1" type="radio" name="rblTraining1" value="1"  <%if (fmData.Training1 == 1){%> checked="checked" <%}%> />
+															<label for="rblTraining1_1">No</label>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="rTableCellNB" style="text-align: left;">
+                                                <div id="IHD_Trainingt1">
+                                                    <textarea name="tblTraining1" rows="2" cols="20" id="tblTraining1" style="width: 90%;"><%= fmData.TrainingDesc1 %></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB2">
+                    <!-- ---------------- Block 2 ----------------------------- -->
+                    <div id="Block2" <%if (fmData.TOS2 == "99"){pageNo = "1" %> style="display:none" <%}%> >
+                        <div class="rTableNB2" id="Div4" style="width: 100%; border-color: Gray;">
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableRow">
+                                        <div class="rTableCellNB" id="Div5" style="display: block; padding: 2px 2px 2px 2px;">
+                                            <span id="lblBlkTitleLtr2" style="font-weight: bold;"><% var d = "B" + pageNo + "2"  %><%=cblData[d][0].ltr %></span> <span id="lblBlkTitle2"
+                                                style="color: Black; font-weight: bold; vertical-align: top"><% var d = "B" + pageNo + "2"  %><%=cblData[d][0].title %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableNB3">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" id="TOS2">
+                                                <input type="hidden" name="hfChildHide2" disabled  id="hfChildHide2" value="show" />
+                                                <input type="hidden" name="hfTOS2" disabled  id="hfTOS2" value="R:2:5:S:IHD_rcBlock2,R:2:5:S:IHD_Training2,R:2:5:S:CareGiver2,R:2:5:S:Freq2,R:0:1:H:pRC2,R:0:1:H:ptr2,R:0:1:H:CareGiver2,R:0:1:H:Freq2" />
+                                                <span id="TOSSpan2" style="color: Maroon; font-size: small;">Type of Support</span><p>
+                                                    <select name="ddlTOS2" id="ddlTOS2" onchange="HideShowDDL2('TOS2')" style="font-size: Small;
+                                                        width: 190px;">
+                                                        <option <%if (fmData.TOS2 == 0){%> selected="selected" <%}%> value="0">Sel One</option>
+											     		<option <%if (fmData.TOS2 == 1){%> selected="selected" <%}%> value="1">no support</option>
+														<option <%if (fmData.TOS2 == 2){%> selected="selected" <%}%> value="2">monitoring/reminders</option>
+														<option <%if (fmData.TOS2 == 3){%> selected="selected" <%}%> value="3">verbal/gestural prompts</option>
+														<option <%if (fmData.TOS2 == 4){%> selected="selected" <%}%> value="4">some physical</option>
+														<option <%if (fmData.TOS2 == 5){%> selected="selected" <%}%> value="5">full physical</option>
+												
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="Freq2">
+                                                <span id="Label1" style="color: Maroon; font-size: Small;">Frequency</span><p>
+                                                    <select name="ddlFreq2" id="ddlFreq2" style="font-size: Small; width: 290px;">
+                                                        <option <%if (fmData.Freq2 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                        <option <%if (fmData.Freq2 == 1){%> selected="selected" <%}%>  value="1">rarely (less than once per month)</option>
+                                                        <option <%if (fmData.Freq2 == 2){%> selected="selected" <%}%>  value="2">monthly (up to 3 times per month)</option>
+                                                        <option <%if (fmData.Freq2 == 3){%> selected="selected" <%}%>  value="3">occasional weekly (1-3 days per week)</option>
+                                                        <option <%if (fmData.Freq2 == 4){%> selected="selected" <%}%>  value="4">regular weekly (4-6 days per week)</option>
+                                                        <option <%if (fmData.Freq2 == 5){%> selected="selected" <%}%>  value="5">daily</option>
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="CareGiver2" style="width: 50%">
+                                                <span id="Label2" style="color: Maroon; font-size: Small;">Caregiver instructions</span><p>
+                                                    <textarea name="tblcgi2" rows="2" cols="20" id="tblcgi2" style="width: 100%;"><%= fmData.CareGiverInst2 %></textarea>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pRC2">
+                                    <!-- Risk/Challenges Section  -->
+                                    <div class="rTableNB" id="IHD_rcBlock2" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="height: 30px; width: 209px;">
+                                                            <p>
+                                                                <span id="Span5" style="color: Maroon; font-size: small;">Risk/Challenges</span></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="font-size: small">
+                                                            Overall Impact
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <select name="ddlRisk2" id="ddlRisk2" style="font-size: Small;">
+                                                                <option <%if (fmData.OverallRisk2 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                                <option <%if (fmData.OverallRisk2 == 1){%> selected="selected" <%}%>  value="1">Low</option>
+                                                                <option <%if (fmData.OverallRisk2 == 2){%> selected="selected" <%}%>  value="2">Moderate</option>
+                                                                <option <%if (fmData.OverallRisk2 == 3){%> selected="selected" <%}%>  value="3">High</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden"disabled name="hfRisk2" id="hfRisk2" value="IHD_pRCO2" />
+                                                            <table id="cblRisk2" cellspacing="0" cellpadding="0" onclick="whichCB('Risk2')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; width: 98%;
+                                                                border-collapse: collapse;">
+                                                                <% var rpName = "Risk2" %><% var rpVal = fmData.Risk2 %> <% var d = "R" + pageNo + "2"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"   value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="display: block;">
+                                                            <div id="IHD_pRCO2">
+                                                                <span id="Label3" style="font-size: Small;">Other:</span>
+                                                                <textarea name="tblRiskOther2" rows="2" cols="20" id="tblRiskOther2" style="width: 90%;"><%= fmData.RiskOther2 %></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pP2">
+                                    <!-- Preferences Section  -->
+                                    <div class="rTableNB">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 21%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <span id="PrefSpan2" style="color: Maroon; font-size: small;">Preferences</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" disabled  name="hfPref2" id="hfPref2" value="IHD_pPO2" />
+                                                            <table id="cblPref2" cellspacing="0" cellpadding="0" onclick="whichCB('Pref2')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; height: 16px;
+                                                                width: 100%; border-collapse: collapse;">
+                                                               <% var rpName = "Pref2" %><% var rpVal = fmData.Pref2 %> <% var d = "P" + pageNo + "2"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" id="">
+                                                            <div id="IHD_pPO2">
+                                                                <div style="display: block; padding: 2px 2px 2px 2px;">
+                                                                    <span id="Label5" style="font-size: Small;">Other:</span>
+                                                                    <textarea name="tblPrefOther2" rows="2" cols="20" id="tblPrefOther2" style="width: 90%;"><%= fmData.PrefOther2 %></textarea>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  -------------AT  ------------------>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="Div12">
+                                    <div class="rTableNB" id="Div20" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 80%;">
+                                                <span id="ATtitle2" style="color: Maroon; font-size: Small;">Technology/ equipment/
+                                                    mods:</span> <span style="font-size: Small;">
+                                                        <input id="cbTechEquip2" type="checkbox" name="cbTechEquip2"<% if(fmData.TechEquip2 != -1){%> checked="checked" <%}%> 
+														onclick="SelClick('2');" /></span>
+                                                &nbsp; &nbsp;<input id="btnEdit2" type="button" value="Edit" title="Edit" onclick="editClick('2');" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="ptr2">
+                                    <!-- Training  -->
+                                    <div class="rTableNB" id="IHD_Training2">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%;">
+                                                <input type="hidden"disabled name="hfTraining2" id="hfTraining2" value="20:IHD_Trainingt2" />
+                                                <span id="Label6" style="color: Maroon; font-size: Small;">Training/Skill Building</span>
+                                                <table id="rblTraining2" cellspacing="0" cellpadding="0" onclick="GrayOutWithPanelV1('Training2')"
+                                                    border="0" style="font-size: Small; width: 120px; border-collapse: collapse;">
+                                                    <tr>
+                                                        <td>
+                                                            <input id="rblTraining2_0" type="radio" name="rblTraining2" value="0"" <%if (fmData.Training2 == 0){%> checked="checked" <%}%> />
+															<label for="rblTraining2_0">Yes</label>
+                                                        </td>
+                                                        <td>
+                                                            <input id="rblTraining2_1" type="radio" name="rblTraining2" value="1" " <%if (fmData.Training2 == 1){%> checked="checked" <%}%> />
+															<label for="rblTraining2_1">No</label>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="rTableCellNB" style="text-align: left;">
+                                                <div id="IHD_Trainingt2">
+                                                    <textarea name="tblTraining2" rows="2" cols="20" id="tblTraining2" style="width: 90%;"><%= fmData.TrainingDesc2 %></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB2">
+                    <!-- ---------------- Block 3 ----------------------------- -->
+                    <div id="Block3"<%if (fmData.TOS3 == "99"){%> style="display:none" <%}%> >
+                        <div class="rTableNB2" id="Div6" style="width: 100%; border-color: Gray;">
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableRow">
+                                        <div class="rTableCellNB" id="Div7" style="display: block; padding: 2px 2px 2px 2px;">
+                                            <span id="lblBlkTitleLtr3" style="font-weight: bold;"><% var d = "B" + pageNo + "3"  %><%=cblData[d][0].ltr %></span> <span id="lblBlkTitle3"
+                                                style="color: Black; font-weight: bold; vertical-align: top"><% var d = "B" + pageNo + "3"  %><%=cblData[d][0].title %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableNB3">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" id="TOS3">
+                                                <input type="hidden" disabled  name="hfChildHide3" id="hfChildHide3" value="show" />
+                                                <input type="hidden" disabled  name="hfTOS3" id="hfTOS3" value="R:2:5:S:IHD_rcBlock3,R:2:5:S:IHD_Training3,R:2:5:S:CareGiver3,R:2:5:S:Freq3,R:0:1:H:pRC3,R:0:1:H:ptr3,R:0:1:H:CareGiver3,R:0:1:H:Freq3" />
+                                                <span id="TOSSpan3" style="color: Maroon; font-size: small;">Type of Support</span><p>
+                                                    <select name="ddlTOS3" id="ddlTOS3" onchange="HideShowDDL2('TOS3')" style="font-size: Small;
+                                                        width: 190px;">
+                                                        <option <%if (fmData.TOS3 == 0){%> selected="selected" <%}%> value="0">Sel One</option>
+											     		<option <%if (fmData.TOS3 == 1){%> selected="selected" <%}%> value="1">no support</option>
+														<option <%if (fmData.TOS3 == 2){%> selected="selected" <%}%> value="2">monitoring/reminders</option>
+														<option <%if (fmData.TOS3 == 3){%> selected="selected" <%}%> value="3">verbal/gestural prompts</option>
+														<option <%if (fmData.TOS3 == 4){%> selected="selected" <%}%> value="4">some physical</option>
+														<option <%if (fmData.TOS3 == 5){%> selected="selected" <%}%> value="5">full physical</option>
+												    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="Freq3">
+                                                <span id="Label11" style="color: Maroon; font-size: Small;">Frequency</span><p>
+                                                    <select name="ddlFreq3" id="ddlFreq3" style="font-size: Small; width: 290px;">
+                                                        <option <%if (fmData.Freq3 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                        <option <%if (fmData.Freq3 == 1){%> selected="selected" <%}%>  value="1">rarely (less than once per month)</option>
+                                                        <option <%if (fmData.Freq3 == 2){%> selected="selected" <%}%>  value="2">monthly (up to 3 times per month)</option>
+                                                        <option <%if (fmData.Freq3 == 3){%> selected="selected" <%}%>  value="3">occasional weekly (1-3 days per week)</option>
+                                                        <option <%if (fmData.Freq3 == 4){%> selected="selected" <%}%>  value="4">regular weekly (4-6 days per week)</option>
+                                                        <option <%if (fmData.Freq3 == 5){%> selected="selected" <%}%>  value="5">daily</option>
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="CareGiver3" style="width: 50%">
+                                                <span id="Label12" style="color: Maroon; font-size: Small;">Caregiver instructions</span><p>
+                                                    <textarea name="tblcgi3" rows="2" cols="20" id="tblcgi3" style="width: 100%;"><%= fmData.CareGiverInst3 %></textarea>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pRC3">
+                                    <!-- Risk/Challenges Section  -->
+                                    <div class="rTableNB" id="IHD_rcBlock3" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="height: 30px; width: 209px;">
+                                                            <p>
+                                                                <span id="Span8" style="color: Maroon; font-size: small;">Risk/Challenges</span></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="font-size: small">
+                                                            Overall Impact
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <select name="ddlRisk3" id="ddlRisk3" style="font-size: Small;">
+                                                                <option <%if (fmData.OverallRisk3 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                                <option <%if (fmData.OverallRisk3 == 1){%> selected="selected" <%}%>  value="1">Low</option>
+                                                                <option <%if (fmData.OverallRisk3 == 2){%> selected="selected" <%}%>  value="2">Moderate</option>
+                                                                <option <%if (fmData.OverallRisk3 == 3){%> selected="selected" <%}%>  value="3">High</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" disabled  name="hfRisk3" id="hfRisk3" value="IHD_pRCO3" />
+                                                            <table id="cblRisk3" cellspacing="0" cellpadding="0" onclick="whichCB('Risk3')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; width: 98%;
+                                                                border-collapse: collapse;">
+																
+                                                                <% var rpName = "Risk3" %><% var rpVal = fmData.Risk3 %> <% var d = "R" + pageNo + "3"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="display: block;">
+                                                            <div id="IHD_pRCO3">
+                                                                <span id="Label13" style="font-size: Small;">Other:</span>
+                                                                <textarea name="tblRiskOther3" rows="2" cols="20" id="tblRiskOther3" style="width: 90%;"><%= fmData.RiskOther3 %> </textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pP3">
+                                    <!-- Preferences Section  -->
+                                    <div class="rTableNB">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 21%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <span id="PrefSpan3" style="color: Maroon; font-size: small;">Preferences</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden"disabled name="hfPref3" id="hfPref3" value="IHD_pPO3" />
+                                                            <table id="cblPref3" cellspacing="0" cellpadding="0" onclick="whichCB('Pref3')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; height: 16px;
+                                                                width: 100%; border-collapse: collapse;">
+                                                                <% var rpName = "Pref3" %><% var rpVal = fmData.Pref3 %> <% var d = "P" + pageNo + "3"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" id="Div8">
+                                                            <div id="IHD_pPO3">
+                                                                <div style="display: block; padding: 2px 2px 2px 2px;">
+                                                                    <span id="Label14" style="font-size: Small;">Other:</span>
+                                                                    <textarea name="tblPrefOther3" rows="2" cols="20" id="tblPrefOther3" style="width: 90%;"><%= fmData.PrefOther3 %></textarea>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  -------------AT  ------------------>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="Div21">
+                                    <div class="rTableNB" id="Div22" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 80%;">
+                                                <span id="ATtitle3" style="color: Maroon; font-size: Small;">Technology/ equipment/
+                                                    mods:</span> <span style="font-size: Small;">
+                                                        <input id="cbTechEquip3" type="checkbox" name="cbTechEquip3" <% if(fmData.TechEquip3 != -1){%> checked="checked" <%}%> 
+														onclick="SelClick('3');" /></span>
+                                                &nbsp; &nbsp;<input id="btnEdit3" type="button" value="Edit" title="Edit" onclick="editClick('3');" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="ptr3">
+                                    <!-- Training  -->
+                                    <div class="rTableNB" id="IHD_Training3">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%;">
+                                                <input type="hidden"  disabled name="hfTraining3" id="hfTraining3" value="20:IHD_Trainingt3" />
+                                                <span id="Label15" style="color: Maroon; font-size: Small;">Training/Skill Building</span>
+                                                <table id="rblTraining3" cellspacing="0" cellpadding="0" onclick="GrayOutWithPanelV1('Training3')"
+                                                    border="0" style="font-size: Small; width: 120px; border-collapse: collapse;">
+                                                    <tr>
+                                                        <td>
+                                                            <input id="rblTraining3_0" type="radio" name="rblTraining3" value="0" " <%if (fmData.Training3 == 0){%> checked="checked" <%}%> />
+															<label for="rblTraining3_0">Yes</label>
+                                                        </td>
+                                                        <td>
+                                                            <input id="rblTraining3_1" type="radio" name="rblTraining3" value="1" " <%if (fmData.Training3 == 1){%> checked="checked" <%}%> />
+															<label for="rblTraining3_1">No</label>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="rTableCellNB" style="text-align: left;">
+                                                <div id="IHD_Trainingt3">
+                                                    <textarea name="tblTraining3" rows="2" cols="20" id="tblTraining3" style="width: 90%;"><%= fmData.TrainingDesc3 %></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB2">
+                    <!-- ---------------- Block 4 ----------------------------- -->
+                    <div id="Block4"<%if (fmData.TOS4 == "99"){%> style="display:none" <%}%> >
+                        <div class="rTableNB2" id="Div9" style="width: 100%; border-color: Gray;">
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableRow">
+                                        <div class="rTableCellNB" id="Div10" style="display: block; padding: 2px 2px 2px 2px;">
+                                            <span id="lblBlkTitleLtr4" style="font-weight: bold;"><% var d = "B" + pageNo + "4"  %><%=cblData[d][0].ltr %></span> <span id="lblBlkTitle4"
+                                                style="color: Black; font-weight: bold; vertical-align: top"><% var d = "B" + pageNo + "4"  %><%=cblData[d][0].title %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                    <div class="rTableNB3">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" id="TOS4">
+                                                <input type="hidden"  disabled name="hfChildHide4" id="hfChildHide4" value="show" />
+                                                <input type="hidden"  disabled name="hfTOS4" id="hfTOS4" value="R:2:5:S:IHD_rcBlock4,R:2:5:S:IHD_Training4,R:2:5:S:CareGiver4,R:2:5:S:Freq4,R:0:1:H:pRC4,R:0:1:H:ptr4,R:0:1:H:CareGiver4,R:0:1:H:Freq4" />
+                                                <span id="TOSSpan4" style="color: Maroon; font-size: small;">Type of Support</span><p>
+                                                    <select name="ddlTOS4" id="ddlTOS4" onchange="HideShowDDL2('TOS4')" style="font-size: Small;
+                                                        width: 190px;">
+                                                        <option <%if (fmData.TOS4 == 0){%> selected="selected" <%}%> value="0">Sel One</option>
+											     		<option <%if (fmData.TOS4 == 1){%> selected="selected" <%}%> value="1">no support</option>
+														<option <%if (fmData.TOS4 == 2){%> selected="selected" <%}%> value="2">monitoring/reminders</option>
+														<option <%if (fmData.TOS4 == 3){%> selected="selected" <%}%> value="3">verbal/gestural prompts</option>
+														<option <%if (fmData.TOS4 == 4){%> selected="selected" <%}%> value="4">some physical</option>
+														<option <%if (fmData.TOS4 == 5){%> selected="selected" <%}%> value="5">full physical</option>
+												
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="Freq4">
+                                                <span id="Label16" style="color: Maroon; font-size: Small;">Frequency</span><p>
+                                                    <select name="ddlFreq4" id="ddlFreq4" style="font-size: Small; width: 290px;">
+                                                        <option <%if (fmData.Freq4 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                        <option <%if (fmData.Freq4 == 1){%> selected="selected" <%}%>  value="1">rarely (less than once per month)</option>
+                                                        <option <%if (fmData.Freq4 == 2){%> selected="selected" <%}%>  value="2">monthly (up to 3 times per month)</option>
+                                                        <option <%if (fmData.Freq4 == 3){%> selected="selected" <%}%>  value="3">occasional weekly (1-3 days per week)</option>
+                                                        <option <%if (fmData.Freq4 == 4){%> selected="selected" <%}%>  value="4">regular weekly (4-6 days per week)</option>
+                                                        <option <%if (fmData.Freq4 == 5){%> selected="selected" <%}%>  value="5">daily</option>
+                                                    </select>
+                                                </p>
+                                            </div>
+                                            <div class="rTableCellNB" id="CareGiver4" style="width: 50%">
+                                                <span id="Label17" style="color: Maroon; font-size: Small;">Caregiver instructions</span><p>
+                                                    <textarea name="tblcgi4" rows="2" cols="20" id="tblcgi4" style="width: 100%;"><%= fmData.CareGiverInst4 %></textarea>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pRC4">
+                                    <!-- Risk/Challenges Section  -->
+                                    <div class="rTableNB" id="IHD_rcBlock4" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="height: 30px; width: 209px;">
+                                                            <p>
+                                                                <span id="Span11" style="color: Maroon; font-size: small;">Risk/Challenges</span></p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="font-size: small">
+                                                            Overall Impact
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <select name="ddlRisk4" id="ddlRisk4" style="font-size: Small;">
+                                                                <option <%if (fmData.OverallRisk4 == 0){%> selected="selected" <%}%>  value="0">Sel One</option>
+                                                                <option <%if (fmData.OverallRisk4 == 1){%> selected="selected" <%}%>  value="1">Low</option>
+                                                                <option <%if (fmData.OverallRisk4 == 2){%> selected="selected" <%}%>  value="2">Moderate</option>
+                                                                <option <%if (fmData.OverallRisk4 == 3){%> selected="selected" <%}%>  value="3">High</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" disabled name="hfRisk4" id="hfRisk4" value="IHD_pRCO4" />
+                                                            <table id="cblRisk4" cellspacing="0" cellpadding="0" onclick="whichCB('Risk4')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; width: 98%;
+                                                                border-collapse: collapse;">
+                                                                 <% var rpName = "Risk4" %><% var rpVal = fmData.Risk4 %> <% var d = "R" + pageNo + "4"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" style="display: block;">
+                                                            <div id="IHD_pRCO4">
+                                                                <span id="Label18" style="font-size: Small;">Other:</span>
+                                                                <textarea name="tblRiskOther4" rows="2" cols="20" id="tblRiskOther4" style="width: 90%;"><%= fmData.RiskOther4 %></textarea>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="pP4">
+                                    <!-- Preferences Section  -->
+                                    <div class="rTableNB">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 21%; vertical-align: middle;">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <span id="PrefSpan4" style="color: Maroon; font-size: small;">Preferences</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="rTableCellNB">
+                                                <div class="rTableNB">
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB">
+                                                            <input type="hidden" disabled  name="hfPref4" id="hfPref4" value="IHD_pPO4" />
+                                                            <table id="cblPref4" cellspacing="0" cellpadding="0" onclick="whichCB('Pref4')" border="0"
+                                                                style="border-style: None; font-family: Times New Roman; font-size: Small; height: 16px;
+                                                                width: 100%; border-collapse: collapse;">
+                                                               <% var rpName = "Pref4" %><% var rpVal = fmData.Pref4 %> <% var d = "P" + pageNo + "4"  %><%for (var i = 0; i < cblData[d].length; i++){ %> <tr>	<td><span somevalue="<%=cblData[d][i].val %>"><input id="cbl<%=rpName%>_<%= cblData[d][i].seq %>" type="checkbox"  value="<%= cblData[d][i].val %>"  name="cbl<%=rpName%>$<%= cblData[d][i].seq %>" <%  if(rpVal.indexOf(cblData[d][i].val ) != -1 ){%> checked="checked" <%}%> />	<label for="cbl<%=rpName%>_<%= cblData[d][i].seq %>"><%= cblData[d][i].txt %></label></span>	</td></tr><% } %>
+
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="rTableRow">
+                                                        <div class="rTableCellNB" id="Div11">
+                                                            <div id="IHD_pPO4">
+                                                                <div style="display: block; padding: 2px 2px 2px 2px;">
+                                                                    <span id="Label19" style="font-size: Small;">Other:</span>
+                                                                    <textarea name="tblPrefOther4" rows="2" cols="20" id="tblPrefOther4" style="width: 90%;"><%= fmData.PrefOther4 %></textarea>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  -------------AT  ------------------>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="Div23">
+                                    <div class="rTableNB" id="Div24" style="border-top: solid 1px gray; border-bottom: solid 1px gray;">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 80%;">
+                                                <span id="ATtitle4" style="color: Maroon; font-size: Small;">Technology/ equipment/
+                                                    mods:</span> <span style="font-size: Small;">
+                                                        <input id="cbTechEquip4" type="checkbox" name="cbTechEquip4"<% if(fmData.TechEquip4 != -1){%> checked="checked" <%}%> 
+														onclick="SelClick('4');" /></span>
+                                                &nbsp; &nbsp;<input id="btnEdit4" type="button" value="Edit" title="Edit" onclick="editClick('4');" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rTableRow">
+                                <div class="rTableCellNB" id="ptr4">
+                                    <!-- Training  -->
+                                    <div class="rTableNB" id="IHD_Training4">
+                                        <div class="rTableRow">
+                                            <div class="rTableCellNB" style="width: 20%;">
+                                                <input type="hidden" disabled  name="hfTraining4" id="hfTraining4" value="20:IHD_Trainingt4" />
+                                                <span id="Label20" style="color: Maroon; font-size: Small;">Training/Skill Building</span>
+                                                <table id="rblTraining4" cellspacing="0" cellpadding="0" onclick="GrayOutWithPanelV1('Training4')"
+                                                    border="0" style="font-size: Small; width: 120px; border-collapse: collapse;">
+                                                    <tr>
+                                                        <td>
+                                                            <input id="rblTraining4_0" type="radio" name="rblTraining4" value="0" " <%if (fmData.Training4 == 0){%> checked="checked" <%}%> />
+															<label for="rblTraining4_0">Yes</label>
+                                                        </td>
+                                                        <td>
+                                                            <input id="rblTraining4_1" type="radio" name="rblTraining4" value="1" " <%if (fmData.Training4 == 1){%> checked="checked" <%}%> />
+															<label  for="rblTraining4_1">No</label>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="rTableCellNB" style="text-align: left;">
+                                                <div id="IHD_Trainingt4">
+                                                    <textarea name="tblTraining4" rows="2" cols="20" id="tblTraining4" style="width: 90%;"><%= fmData.TrainingDesc4 %></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+			
+			 <div id="pnlUnmetNeeds"<%if (fmData.UnmetNeeds == "99"){%> style="display:none" <%}%> >
+	
+                        <div class="rTableNB2" id="Div17" style="width: 100%; border-color: Gray;">
+                            <div class="rTableRow">
+                                <div class="rTableCellNB">
+                                   <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: middle; font-weight: bold;">
+                                            <span id="rbNeeds" onclick="GrayOutWithPanelV1('A1Needs')">
+												<input id="rbNeeds_0" type="radio" name="rbNeeds" value="0" <%if (fmData.UnmetNeeds == 0){%> checked="checked" <%}%> />
+												<label for="rbNeeds_0">Needs Met</label>
+												<input id="rbNeeds_1" type="radio" name="rbNeeds" value="1" <%if (fmData.UnmetNeeds == 1){%> checked="checked" <%}%> />
+												<label for="rbNeeds_1">Needs Unmet</label>
+											 </span>
+                                            &nbsp;
+                                            <span id="Label30"> Comments: </span>
+                                            <textarea name="tblNeeds" rows="2" cols="20" id="tblNeeds" style="width:60%;"><%= fmData.Comments %></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+			</div>
+                    
+                    
+               
+
+            <div class="rTableRow">
+                <div class="rTableCellNB">
+                    <div class="rTableNB">
+                        <div class="rTableRow">
+                            <div class="rTableCellNB">
+                                <div style="display: block; padding: 2px 2px 2px 2px; vertical-align: middle;">
+                                    <img alt="" src="Images/Insert.png" style="width: 30px; height: 30px;" onclick=" businessRule(true);" />
+                                    &nbsp; &nbsp;
+                                    <input type="submit" name="ibtnPrevious" value="Previous" id="ibtnPrevious"  onclick="btnPrevious()" style="font-size: Medium;
+                                        font-weight: bold;" />
+                                    &nbsp; &nbsp;
+                                    <input type="submit" name="ibtnNext" value="Next" id="ibtnNext" onclick="btnNext()" style="font-size: Medium;
+                                        font-weight: bold;" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rTableRow">
+                <div class="rTableCellNB">
+                    <br />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        //<![CDATA[
+        $(document).ready(function() {
+			$('#hfnavCntrl')[0].value = decodeURIComponent( $('#hfnavCntrl')[0].value )
+			console.log($('#hfnavCntrl')[0].value);
+			var myObj =  JSON.parse($('#hfnavCntrl')[0].value) ;
+
+			console.log(myObj.thisFm);
+			//myObj.nextPg = "2";
+			$('#hfnavCntrl')[0].value = JSON.stringify(myObj);
+			console.log($('#hfnavCntrl')[0].value);
+
+		  initialHide();
+             hdrLine1DownArrowV1('Display');
+            //abbreviatedNavBtns('Display');
+            businessRule(false);
+            childHide()
+            // --display test for either the child or adult ----
+            //-- both child and adult text are in spans, erase the one not needed ---
+            //             var ac = $('#hfAdultChild')[0].value;
+            //             $('[class^="' + ac + '"]').each(function() {
+            //                 $(this).context.innerText = ""
+            //             });
+            $('[id^="ibtn"]').click(function() {
+                // alert($(this).context.id);
+                businessRule(true);
+
+            });
+
+        });
+        //]]>
+    </script>
+
+    </form>
+</body>
+</html>
